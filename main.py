@@ -68,8 +68,8 @@ if st.button("Generate README"):
         st.warning("Please paste some code first!")
     else:
         with st.spinner("Gemini is writing your README..."):
-            prompt = f"You are a Senior Developer. Generate a professional GitHub README.md for the following code: {code_input}"
-
+            prompt = f"Act as a Senior Developer. Create a clean, concise GitHub README.md "   "for the following code. Include: Title, Description, Installation, " "Usage, and Features. Keep explanations brief and professional.\n\n" f"Code:\n{code_input}"
+            
             response = client.models.generate_content(
         model="gemini-2.5-flash", 
         contents=prompt
