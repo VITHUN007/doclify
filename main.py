@@ -55,33 +55,62 @@ st.markdown("<h1 class='title-text'> Doclify: AI README Generator</h1>", unsafe_
 st.markdown("<p style='text-align: center;'>Paste your code and get the documentation.</p>", unsafe_allow_html=True)
 st.divider()
 
-st.markdown("### Paste your code below:")
-
-code_input = st.text_area(
-    "Paste Code Here",
-    height=300,
-    placeholder="Copy and paste your Python/Java/HTML project code here..."
+st.markdown("### Upload your project files (Python, JS, Java, etc.):")
+uploaded_files = st.file_uploader(
+    "Choose files", 
+    accept_multiple_files=True,
+    type=["py", "js", "java", "cpp", "cs", "go", "rb", "ts", "php", "html", "css", "json", "yaml", "md", "xml", "sh", "bat"],
+    help="Upload your source code.files. Binary files are not supported."
 )
-
 if st.button("Generate README"):
-    if not code_input.strip():
-        st.warning("Please paste some code first!")
+    if not uploaded_files:
+        st.warning("Please upload at least one file first!")
     else:
-        with st.spinner("Gemini is writing your README..."):
-            prompt = f"Act as a Senior Developer. Create a clean, concise GitHub README.md "   "for the following code. Include: Title, Description, Installation, " "Usage, and Features. Keep explanations brief and professional.\n\n" f"Code:\n{code_input}"
-            
-            response = client.models.generate_content(
-        model="gemini-2.5-flash", 
-        contents=prompt
-        )
+        with st.spinner("Analyzing code structure..."):
+            full_context = ""
+            file_summary = []
 
-        st.success("README Generated Successfully ")
-        st.markdown("## Generated README.md")
-        st.code(response.text, language="markdown")
+            for uploaded_file in uploaded_files:
+                try:
+                    file_bytes = uploaded_file.read()
+                    content = file_bytes.decode("utf-8", errors="replace")
+                    
+                    full_context += f"\n\n--- START FILE: {uploaded_file.name} ---\n{content}\n--- END FILE: {uploaded_file.name} ---"
+                    file_summary.append(uploaded_file.name)
+                except Exception as e:
+                    st.error(f"Error reading {uploaded_file.name}: {e}")
 
-        st.download_button(
-            "⬇ Download README.md",
-            response.text,
-            file_name="README.md"
-        )
+        
+            prompt = (
+                "Act as a Senior Software Architect. Below is a collection of source files from a project. "
+                "1. Analyze the logic and purpose of the code.\n"
+                "2. Create a high-quality GitHub README.md.\n"
+                "3. Include: Project Title, Description, a 'Project Structure' tree, Installation, Usage, and Features.\n"
+                "4. Be concise, professional, and use proper Markdown formatting.\n\n"
+                f"PROJECT FILES:\n{full_context}"
+            )
 
+            try:
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash", 
+                    contents=prompt
+                )
+
+                st.success("Documentation Ready!")
+                
+                st.markdown("---")
+                st.markdown("## Generated README.md")
+                st.code(response.text, language="markdown")
+
+                st.download_button(
+                    label="Download README.md",
+                    data=response.text,
+                    file_name="README.md",
+                    mime="text/markdown"
+                )
+
+            except Exception as e:
+                st.error(f"Gemini API Error: {e}")
+
+if uploaded_files:
+    st.info(f"Files that are uploaded for processing: {', '.join([f.name for f in uploaded_files])}")
